@@ -1,10 +1,24 @@
 /**
- * Scan & Diff panel component
+ * Enhanced Scan & Diff panel with full UI interactions
  */
 
-import { Box, Button, Card, Heading, Stack, Text } from '@sanity/ui'
-import { SearchIcon } from '@sanity/icons'
-import type { ContentSyncConfig } from '../../types'
+import { useCallback, useState } from 'react'
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Heading,
+  Stack,
+  Text,
+  Spinner,
+  Badge,
+} from '@sanity/ui'
+import { SearchIcon, RefreshIcon } from '@sanity/icons'
+import type { ContentSyncConfig, ChangeRecord } from '../../types'
+import { ChangeList } from './ChangeList'
+import { DiffViewer } from './DiffViewer'
+import { FilterControls } from './FilterControls'
 
 interface ScanDiffPanelProps {
   config: ContentSyncConfig
@@ -12,13 +26,61 @@ interface ScanDiffPanelProps {
 }
 
 export function ScanDiffPanel({ config, syncState }: ScanDiffPanelProps) {
-  const { state, setIsScanning } = syncState
+  const { state, setIsScanning, setChanges, setCurrentDiff, setFilters } = syncState
+  const [selectedChange, setSelectedChange] = useState<ChangeRecord | null>(null)
 
-  const handleScan = () => {
+  const handleScan = useCallback(async () => {
+    if (!state.sourceDataset || !state.targetDataset) {
+      return
+    }
+
     setIsScanning(true)
-    // TODO: Implement scan logic
-    setTimeout(() => setIsScanning(false), 1000)
-  }
+    try {
+      // TODO: Call actual scan API
+      // For now, simulate with mock data
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      const mockChanges: ChangeRecord[] = [
+        {
+          docId: 'article-1',
+          type: 'article',
+          action: 'updated',
+          sourceTimestamp: new Date().toISOString(),
+          targetTimestamp: new Date(Date.now() - 86400000).toISOString(),
+          fieldsChanged: ['title', 'content'],
+        },
+        {
+          docId: 'page-2',
+          type: 'page',
+          action: 'added',
+          sourceTimestamp: new Date().toISOString(),
+        },
+        {
+          docId: 'product-3',
+          type: 'product',
+          action: 'updated',
+          sourceTimestamp: new Date().toISOString(),
+          targetTimestamp: new Date(Date.now() - 3600000).toISOString(),
+          fieldsChanged: ['price', 'stock'],
+        },
+      ]
+
+      setChanges(mockChanges)
+    } catch (error) {
+      console.error('Scan failed:', error)
+    } finally {
+      setIsScanning(false)
+    }
+  }, [state.sourceDataset, state.targetDataset, setIsScanning, setChanges])
+
+  const handleViewDiff = useCallback(
+    async (change: ChangeRecord) => {
+      setSelectedChange(change)
+      // TODO: Call actual diff API
+      // setCurrentDiff with the result
+    },
+    [setCurrentDiff]
+  )
 
   return (
     <Stack space={4}>
@@ -29,24 +91,61 @@ export function ScanDiffPanel({ config, syncState }: ScanDiffPanelProps) {
         </Text>
       </Box>
 
-      <Card padding={4}>
-        <Button
-          text="Scan for Changes"
-          icon={SearchIcon}
-          onClick={handleScan}
-          disabled={!state.sourceDataset || !state.targetDataset || state.isScanning}
-          loading={state.isScanning}
-          tone="primary"
-        />
-      </Card>
+      <FilterControls filters={state.filters} onFiltersChange={setFilters} />
 
       <Card padding={4}>
-        <Text muted>
-          {state.changes.length > 0
-            ? `Found ${state.changes.length} changes`
-            : 'No changes scanned yet. Click "Scan for Changes" to begin.'}
-        </Text>
+        <Flex gap={3}>
+          <Button
+            text="Scan for Changes"
+            icon={SearchIcon}
+            onClick={handleScan}
+            disabled={!state.sourceDataset || !state.targetDataset || state.isScanning}
+            loading={state.isScanning}
+            tone="primary"
+            flex={1}
+          />
+          <Button
+            text="Refresh"
+            icon={RefreshIcon}
+            onClick={handleScan}
+            disabled={!state.sourceDataset || !state.targetDataset || state.isScanning}
+            mode="ghost"
+          />
+        </Flex>
       </Card>
+
+      {state.isScanning && (
+        <Card padding={4} tone="primary">
+          <Flex align="center" gap={3}>
+            <Spinner />
+            <Text>Scanning datasets for changes...</Text>
+          </Flex>
+        </Card>
+      )}
+
+      {!state.isScanning && state.changes.length > 0 && (
+        <Card padding={4}>
+          <Stack space={3}>
+            <Flex justify="space-between" align="center">
+              <Heading size={1}>Changes Found</Heading>
+              <Badge tone="primary">{state.changes.length} documents</Badge>
+            </Flex>
+            <ChangeList changes={state.changes} onViewDiff={handleViewDiff} />
+          </Stack>
+        </Card>
+      )}
+
+      {!state.isScanning && state.changes.length === 0 && (
+        <Card padding={4} tone="transparent" border>
+          <Text muted align="center">
+            No changes scanned yet. Click &quot;Scan for Changes&quot; to begin.
+          </Text>
+        </Card>
+      )}
+
+      {selectedChange && state.currentDiff && (
+        <DiffViewer diff={state.currentDiff} onClose={() => setSelectedChange(null)} />
+      )}
     </Stack>
   )
 }
