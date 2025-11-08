@@ -1,0 +1,11 @@
+{
+  "root": true,
+  "api": {
+    "projectId": "example",
+    "dataset": "production"
+  },
+  "project": {
+    "name": "sanity-plugin-content-sync"
+  },
+  "plugins": ["@sanity/base", "@sanity/default-layout", "@sanity/default-login"]
+}
