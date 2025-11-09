@@ -5,6 +5,12 @@
 import type { SanityClient } from '@sanity/client'
 import type { ChangeRecord, ScanResult, SyncFilters, DocumentSummary } from '../../types'
 import { DEFAULT_PAGE_SIZE } from '../../utils/constants'
+import {
+  sanitizeGroqString,
+  sanitizeIdPattern,
+  sanitizeDocumentTypes,
+  validateIsoDate,
+} from '../../utils/sanitize'
 
 /**
  * Scan changes between two datasets
@@ -96,32 +102,45 @@ export async function scanChanges(
 function buildScanQuery(filters: SyncFilters, limit: number, cursor?: string): string {
   const conditions: string[] = []
 
-  // Filter by document types
+  // Filter by document types with sanitization
   if (filters.documentTypes && filters.documentTypes.length > 0) {
-    const types = filters.documentTypes.map((t) => `"${t}"`).join(', ')
+    const sanitizedTypes = sanitizeDocumentTypes(filters.documentTypes)
+    const types = sanitizedTypes.map((t) => `"${t}"`).join(', ')
     conditions.push(`_type in [${types}]`)
   }
 
-  // Filter by ID patterns (simple contains for now)
+  // Filter by ID patterns with sanitization
   if (filters.idPatterns && filters.idPatterns.length > 0) {
     const patterns = filters.idPatterns
-      .map((pattern) => `_id match "${pattern}"`)
+      .map((pattern) => {
+        const sanitized = sanitizeIdPattern(pattern)
+        return `_id match "${sanitized}"`
+      })
       .join(' || ')
     conditions.push(`(${patterns})`)
   }
 
-  // Filter by update date range
+  // Filter by update date range with validation
   if (filters.updatedAfter) {
-    conditions.push(`_updatedAt > "${filters.updatedAfter}"`)
+    if (!validateIsoDate(filters.updatedAfter)) {
+      throw new Error('Invalid updatedAfter date format')
+    }
+    const sanitized = sanitizeGroqString(filters.updatedAfter)
+    conditions.push(`_updatedAt > "${sanitized}"`)
   }
 
   if (filters.updatedBefore) {
-    conditions.push(`_updatedAt < "${filters.updatedBefore}"`)
+    if (!validateIsoDate(filters.updatedBefore)) {
+      throw new Error('Invalid updatedBefore date format')
+    }
+    const sanitized = sanitizeGroqString(filters.updatedBefore)
+    conditions.push(`_updatedAt < "${sanitized}"`)
   }
 
-  // Cursor-based pagination
+  // Cursor-based pagination with sanitization
   if (cursor) {
-    conditions.push(`_id > "${cursor}"`)
+    const sanitized = sanitizeGroqString(cursor)
+    conditions.push(`_id > "${sanitized}"`)
   }
 
   // Build final query

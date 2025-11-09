@@ -5,6 +5,7 @@
 import type { SanityDocument } from '@sanity/types'
 import type { PatchPreview, SyncPolicy, SyncRuleRecord, SyncOptions } from '../../types'
 import { applyMergePolicy } from './policy'
+import equal from 'fast-deep-equal'
 
 export interface PatchContext {
   policy: SyncPolicy
@@ -63,13 +64,13 @@ export async function computePatches(
 /**
  * Get list of fields that changed between two documents
  */
-function getChangedFields(oldDoc: any, newDoc: any): string[] {
+function getChangedFields(oldDoc: SanityDocument, newDoc: SanityDocument): string[] {
   const changed: string[] = []
 
   for (const key of Object.keys(newDoc)) {
     if (key.startsWith('_')) continue
 
-    if (JSON.stringify(oldDoc[key]) !== JSON.stringify(newDoc[key])) {
+    if (!equal(oldDoc[key], newDoc[key])) {
       changed.push(key)
     }
   }

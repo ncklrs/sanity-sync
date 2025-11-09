@@ -3,16 +3,15 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Box, Button, Card, Flex, Heading, Stack, Text, Badge, Spinner } from '@sanity/ui'
+import { Box, Button, Card, Flex, Heading, Stack, Text, Badge, Spinner, useToast } from '@sanity/ui'
 import { RefreshIcon, DocumentIcon } from '@sanity/icons'
-import type { ContentSyncConfig, SyncJobRecord } from '../../types'
+import type { SyncJobRecord } from '../../types'
 import { JobDetails } from './JobDetails'
 
-interface LogsPanelProps {
-  config: ContentSyncConfig
-}
+interface LogsPanelProps {}
 
-export function LogsPanel({ config }: LogsPanelProps) {
+export function LogsPanel({}: LogsPanelProps) {
+  const toast = useToast()
   const [jobs, setJobs] = useState<SyncJobRecord[]>([])
   const [selectedJob, setSelectedJob] = useState<SyncJobRecord | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -75,7 +74,11 @@ export function LogsPanel({ config }: LogsPanelProps) {
 
       setJobs(mockJobs)
     } catch (error) {
-      console.error('Failed to load jobs:', error)
+      toast.push({
+        status: 'error',
+        title: 'Failed to load jobs',
+        description: error instanceof Error ? error.message : 'Failed to load sync job history',
+      })
     } finally {
       setIsLoading(false)
     }

@@ -14,21 +14,21 @@ import {
   Text,
   Badge,
   Spinner,
-  Progress,
+  useToast,
 } from '@sanity/ui'
 import { PlayIcon, EyeOpenIcon } from '@sanity/icons'
-import type { ContentSyncConfig, ExecuteResult } from '../../types'
+import type { ExecuteResult } from '../../types'
 
 interface PreviewPanelProps {
-  config: ContentSyncConfig
   syncState: any
 }
 
-export function PreviewPanel({ config, syncState }: PreviewPanelProps) {
+export function PreviewPanel({ syncState }: PreviewPanelProps) {
   const { state, setIsSyncing, setDryRun } = syncState
   const [previewResult, setPreviewResult] = useState<any>(null)
   const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null)
   const [progress, setProgress] = useState(0)
+  const toast = useToast()
 
   const handlePreview = useCallback(async () => {
     if (state.selectedDocIds.size === 0) return
@@ -43,7 +43,11 @@ export function PreviewPanel({ config, syncState }: PreviewPanelProps) {
         warnings: [],
       })
     } catch (error) {
-      console.error('Preview failed:', error)
+      toast.push({
+        status: 'error',
+        title: 'Preview failed',
+        description: error instanceof Error ? error.message : 'Failed to preview changes',
+      })
     }
   }, [state.selectedDocIds])
 
@@ -73,7 +77,11 @@ export function PreviewPanel({ config, syncState }: PreviewPanelProps) {
 
       setExecuteResult(result)
     } catch (error) {
-      console.error('Execute failed:', error)
+      toast.push({
+        status: 'error',
+        title: 'Execute failed',
+        description: error instanceof Error ? error.message : 'Failed to execute sync',
+      })
     } finally {
       setIsSyncing(false)
     }

@@ -31,22 +31,24 @@ export interface AssetTransferResult {
 /**
  * Find all asset references in a document
  */
-export function findAssetReferences(doc: any): string[] {
+export function findAssetReferences(doc: Record<string, unknown>): string[] {
   const assetIds = new Set<string>()
 
-  function traverse(obj: any) {
+  function traverse(obj: unknown): void {
     if (!obj || typeof obj !== 'object') return
 
-    if (obj._type === 'image' || obj._type === 'file') {
-      if (obj.asset?._ref) {
-        assetIds.add(obj.asset._ref)
+    const record = obj as Record<string, unknown>
+    if (record._type === 'image' || record._type === 'file') {
+      const assetRef = (record.asset as { _ref?: string })?._ref
+      if (assetRef) {
+        assetIds.add(assetRef)
       }
     }
 
     if (Array.isArray(obj)) {
       obj.forEach(traverse)
     } else {
-      Object.values(obj).forEach(traverse)
+      Object.values(record).forEach(traverse)
     }
   }
 
@@ -159,11 +161,18 @@ async function transferAsset(
 async function findExistingAsset(
   client: SanityClient,
   assetMeta: AssetMetadata
-): Promise<any | null> {
+): Promise<{ _id: string } | null> {
   if (!assetMeta.sha1hash) return null
 
   const query = `*[_type in ["sanity.imageAsset", "sanity.fileAsset"] && sha1hash == $hash][0]`
   return client.fetch(query, { hash: assetMeta.sha1hash })
+}
+
+interface AssetDocument {
+  _id: string
+  _type: string
+  url?: string
+  originalFilename?: string
 }
 
 /**
@@ -172,8 +181,8 @@ async function findExistingAsset(
 async function copyAssetBinary(
   sourceClient: SanityClient,
   targetClient: SanityClient,
-  sourceAsset: any
-): Promise<any> {
+  sourceAsset: AssetDocument
+): Promise<{ _id: string }> {
   if (!sourceAsset.url) {
     throw new Error('Asset URL not available')
   }
@@ -203,20 +212,22 @@ async function copyAssetBinary(
  * Remap asset references in a document
  */
 export function remapAssetReferences(
-  doc: any,
+  doc: Record<string, unknown>,
   assetMap: Map<string, AssetTransferResult>
-): any {
-  function traverse(obj: any): any {
+): Record<string, unknown> {
+  function traverse(obj: unknown): unknown {
     if (!obj || typeof obj !== 'object') return obj
 
-    if (obj._type === 'image' || obj._type === 'file') {
-      if (obj.asset?._ref && assetMap.has(obj.asset._ref)) {
-        const result = assetMap.get(obj.asset._ref)!
+    const record = obj as Record<string, unknown>
+    if (record._type === 'image' || record._type === 'file') {
+      const assetRef = (record.asset as { _ref?: string })?._ref
+      if (assetRef && assetMap.has(assetRef)) {
+        const result = assetMap.get(assetRef)!
         if (result.newId && !result.skipped) {
           return {
-            ...obj,
+            ...record,
             asset: {
-              ...obj.asset,
+              ...(record.asset as Record<string, unknown>),
               _ref: result.newId,
             },
           }
@@ -229,12 +240,12 @@ export function remapAssetReferences(
       return obj.map(traverse)
     }
 
-    const remapped: any = {}
-    for (const [key, value] of Object.entries(obj)) {
+    const remapped: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(record)) {
       remapped[key] = traverse(value)
     }
     return remapped
   }
 
-  return traverse(doc)
+  return traverse(doc) as Record<string, unknown>
 }
