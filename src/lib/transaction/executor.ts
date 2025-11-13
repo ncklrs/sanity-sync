@@ -96,6 +96,20 @@ async function processBatch(
             skipAssets: false,
           })
 
+          const failedAssets = Array.from(assetMap.entries()).filter(([, result]) => result.error)
+          if (failedAssets.length > 0) {
+            failedAssets.forEach(([assetId, result]) => {
+              errors.push({
+                docId: sourceDoc._id,
+                code: 'asset-failure',
+                message: `Asset ${assetId} failed to transfer: ${result.error}`,
+                timestamp: new Date().toISOString(),
+                retryable: false,
+              })
+            })
+            continue
+          }
+
           // Remap asset references in the document
           const remappedDoc = remapAssetReferences(
             sourceDoc as Record<string, unknown>,
