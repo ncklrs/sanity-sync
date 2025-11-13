@@ -8,9 +8,7 @@ import { RefreshIcon, DocumentIcon } from '@sanity/icons'
 import type { SyncJobRecord } from '../../types'
 import { JobDetails } from './JobDetails'
 
-interface LogsPanelProps {}
-
-export function LogsPanel({}: LogsPanelProps) {
+export function LogsPanel() {
   const toast = useToast()
   const [jobs, setJobs] = useState<SyncJobRecord[]>([])
   const [selectedJob, setSelectedJob] = useState<SyncJobRecord | null>(null)
