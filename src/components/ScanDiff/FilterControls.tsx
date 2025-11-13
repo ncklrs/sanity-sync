@@ -2,7 +2,7 @@
  * Filter controls component
  */
 
-import { Card, Flex, Stack, Text, TextInput, Select, Box } from '@sanity/ui'
+import { Card, Flex, Stack, Text, TextInput, Box } from '@sanity/ui'
 import type { SyncFilters } from '../../types'
 
 interface FilterControlsProps {

@@ -3,10 +3,12 @@
  */
 
 import type { SanityClient } from '@sanity/client'
-import type { ExecuteResult, ChangeRecord, ErrorRecord, SyncPolicy } from '../../types'
+import type { SanityDocument } from '@sanity/types'
+import type { ExecuteResult, ChangeRecord, ErrorRecord } from '../../types'
 import { computePatches, type PatchContext } from '../merge/patcher'
 import { retryWithBackoff, isRetryableError } from '../../utils/retry'
 import { DEFAULT_BATCH_SIZE } from '../../utils/constants'
+import { findAssetReferences, transferAssets, remapAssetReferences } from '../asset/transfer'
 
 /**
  * Execute sync operation
@@ -76,8 +78,65 @@ async function processBatch(
     fetchDocuments(targetClient, docIds),
   ])
 
+  // Handle asset transfer if enabled
+  const includeAssets = context.options?.includeAssets !== false
+  const processedSourceDocs: SanityDocument[] = []
+
+  if (includeAssets && !dryRun) {
+    // Process each document for asset transfer
+    for (const sourceDoc of sourceDocs) {
+      try {
+        // Find all asset references in the document
+        const assetIds = findAssetReferences(sourceDoc as Record<string, unknown>)
+
+        if (assetIds.length > 0) {
+          // Transfer assets
+          const assetMap = await transferAssets(sourceClient, targetClient, assetIds, {
+            linkExistingAssets: true,
+            skipAssets: false,
+          })
+
+          const failedAssets = Array.from(assetMap.entries()).filter(([, result]) => result.error)
+          if (failedAssets.length > 0) {
+            failedAssets.forEach(([assetId, result]) => {
+              errors.push({
+                docId: sourceDoc._id,
+                code: 'asset-failure',
+                message: `Asset ${assetId} failed to transfer: ${result.error}`,
+                timestamp: new Date().toISOString(),
+                retryable: false,
+              })
+            })
+            continue
+          }
+
+          // Remap asset references in the document
+          const remappedDoc = remapAssetReferences(
+            sourceDoc as Record<string, unknown>,
+            assetMap
+          )
+          processedSourceDocs.push(remappedDoc as SanityDocument)
+        } else {
+          processedSourceDocs.push(sourceDoc)
+        }
+      } catch (error) {
+        // Log asset transfer error but continue with original document
+        errors.push({
+          docId: sourceDoc._id,
+          code: 'asset-failure',
+          message: error instanceof Error ? error.message : 'Asset transfer failed',
+          timestamp: new Date().toISOString(),
+          retryable: false,
+        })
+        processedSourceDocs.push(sourceDoc)
+      }
+    }
+  } else {
+    processedSourceDocs.push(...sourceDocs)
+  }
+
   // Compute patches
-  const patches = await computePatches(sourceDocs, targetDocs, context)
+  const patches = await computePatches(processedSourceDocs, targetDocs, context)
 
   if (dryRun) {
     // Just record what would happen
@@ -127,11 +186,11 @@ async function processBatch(
 /**
  * Fetch documents by IDs
  */
-async function fetchDocuments(client: SanityClient, ids: string[]): Promise<any[]> {
+async function fetchDocuments(client: SanityClient, ids: string[]): Promise<SanityDocument[]> {
   if (ids.length === 0) return []
 
   const query = `*[_id in $ids]`
-  return client.fetch(query, { ids })
+  return client.fetch<SanityDocument[]>(query, { ids })
 }
 
 /**

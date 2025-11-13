@@ -16,14 +16,13 @@ import {
   Badge,
 } from '@sanity/ui'
 import { CheckmarkIcon, CloseIcon } from '@sanity/icons'
-import type { ContentSyncConfig, SyncPolicy } from '../../types'
+import type { SyncPolicy } from '../../types'
 
 interface SelectionPanelProps {
-  config: ContentSyncConfig
   syncState: any
 }
 
-export function SelectionPanel({ config, syncState }: SelectionPanelProps) {
+export function SelectionPanel({ syncState }: SelectionPanelProps) {
   const { state, setSelectedDocIds, setSyncPolicy, setIncludeAssets } = syncState
 
   const groupedChanges = useMemo(() => {

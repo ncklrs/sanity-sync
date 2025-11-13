@@ -11,10 +11,10 @@ import {
   Heading,
   Stack,
   Text,
-  TextInput,
   Switch,
   Badge,
   Spinner,
+  useToast,
 } from '@sanity/ui'
 import { AddIcon, TrashIcon, EditIcon } from '@sanity/icons'
 import type { ContentSyncConfig, SyncRuleRecord } from '../../types'
@@ -25,6 +25,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ config }: SettingsPanelProps) {
+  const toast = useToast()
   const [rules, setRules] = useState<SyncRuleRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [editingRule, setEditingRule] = useState<SyncRuleRecord | null>(null)
@@ -66,7 +67,11 @@ export function SettingsPanel({ config }: SettingsPanelProps) {
 
       setRules(mockRules)
     } catch (error) {
-      console.error('Failed to load rules:', error)
+      toast.push({
+        status: 'error',
+        title: 'Failed to load rules',
+        description: error instanceof Error ? error.message : 'Failed to load sync rules',
+      })
     } finally {
       setIsLoading(false)
     }

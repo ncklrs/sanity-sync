@@ -13,21 +13,22 @@ import {
   Text,
   Spinner,
   Badge,
+  useToast,
 } from '@sanity/ui'
 import { SearchIcon, RefreshIcon } from '@sanity/icons'
-import type { ContentSyncConfig, ChangeRecord } from '../../types'
+import type { ChangeRecord } from '../../types'
 import { ChangeList } from './ChangeList'
 import { DiffViewer } from './DiffViewer'
 import { FilterControls } from './FilterControls'
 
 interface ScanDiffPanelProps {
-  config: ContentSyncConfig
   syncState: any
 }
 
-export function ScanDiffPanel({ config, syncState }: ScanDiffPanelProps) {
+export function ScanDiffPanel({ syncState }: ScanDiffPanelProps) {
   const { state, setIsScanning, setChanges, setCurrentDiff, setFilters } = syncState
   const [selectedChange, setSelectedChange] = useState<ChangeRecord | null>(null)
+  const toast = useToast()
 
   const handleScan = useCallback(async () => {
     if (!state.sourceDataset || !state.targetDataset) {
@@ -67,11 +68,15 @@ export function ScanDiffPanel({ config, syncState }: ScanDiffPanelProps) {
 
       setChanges(mockChanges)
     } catch (error) {
-      console.error('Scan failed:', error)
+      toast.push({
+        status: 'error',
+        title: 'Scan failed',
+        description: error instanceof Error ? error.message : 'Failed to scan datasets',
+      })
     } finally {
       setIsScanning(false)
     }
-  }, [state.sourceDataset, state.targetDataset, setIsScanning, setChanges])
+  }, [state.sourceDataset, state.targetDataset, setIsScanning, setChanges, toast])
 
   const handleViewDiff = useCallback(
     async (change: ChangeRecord) => {

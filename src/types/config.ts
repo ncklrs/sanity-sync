@@ -2,6 +2,8 @@
  * Plugin configuration types
  */
 
+import type { SyncJobRecord, SyncPolicy } from './sync'
+
 export interface DatasetConfig {
   /** Dataset ID */
   id: string

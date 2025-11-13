@@ -49,7 +49,7 @@ export function useSyncState(config: ContentSyncConfig) {
     setState((prev) => ({ ...prev, currentDiff: diff }))
   }, [])
 
-  const setSyncPolicy = useCallback((policy: any) => {
+  const setSyncPolicy = useCallback((policy: SyncState['syncPolicy']) => {
     setState((prev) => ({ ...prev, syncPolicy: policy }))
   }, [])
 

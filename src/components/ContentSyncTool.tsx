@@ -75,19 +75,19 @@ export function ContentSyncTool({ config }: ContentSyncToolProps) {
           </TabPanel>
 
           <TabPanel aria-labelledby="scan-tab" hidden={activeTab !== 'scan'} id="scan-panel">
-            <ScanDiffPanel config={config} syncState={syncState} />
+            <ScanDiffPanel syncState={syncState} />
           </TabPanel>
 
           <TabPanel aria-labelledby="selection-tab" hidden={activeTab !== 'selection'} id="selection-panel">
-            <SelectionPanel config={config} syncState={syncState} />
+            <SelectionPanel syncState={syncState} />
           </TabPanel>
 
           <TabPanel aria-labelledby="preview-tab" hidden={activeTab !== 'preview'} id="preview-panel">
-            <PreviewPanel config={config} syncState={syncState} />
+            <PreviewPanel syncState={syncState} />
           </TabPanel>
 
           <TabPanel aria-labelledby="logs-tab" hidden={activeTab !== 'logs'} id="logs-panel">
-            <LogsPanel config={config} />
+            <LogsPanel />
           </TabPanel>
 
           <TabPanel aria-labelledby="settings-tab" hidden={activeTab !== 'settings'} id="settings-panel">

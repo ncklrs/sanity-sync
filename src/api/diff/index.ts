@@ -36,7 +36,7 @@ export async function handleDiff(
       targetClient.getDocument(docId).catch(() => null),
     ])
 
-    const diff = computeDocumentDiff(sourceDoc, targetDoc, docId)
+    const diff = computeDocumentDiff(sourceDoc ?? null, targetDoc ?? null, docId)
 
     return {
       success: true,

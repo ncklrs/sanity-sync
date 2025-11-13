@@ -7,7 +7,8 @@ import type { ContentSyncConfig } from './types'
 /**
  * Sanity plugin for content sync between datasets
  */
-export const contentSync = definePlugin<ContentSyncConfig | void>((config = {}) => {
+export const contentSync = definePlugin<ContentSyncConfig | void>((config) => {
+  const userConfig = config || {}
   const defaultConfig: ContentSyncConfig = {
     datasets: [],
     defaultSource: undefined,
@@ -17,7 +18,7 @@ export const contentSync = definePlugin<ContentSyncConfig | void>((config = {}) 
     preserveHintFields: ['_keepLocal', 'devOnly', 'testMeta'],
     batchSize: 50,
     concurrency: 4,
-    ...config,
+    ...userConfig,
   }
 
   return {
